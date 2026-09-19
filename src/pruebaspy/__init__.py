@@ -4,6 +4,10 @@ import sys
 import urllib.error
 import urllib.request
 
+"""
+Script de automatizacion para crear un mapeo para DMC 1,2,3,4 special edition
+"""
+
 
 def check_ahk_installed():
     paths = [
