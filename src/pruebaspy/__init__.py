@@ -30,7 +30,7 @@ def get_ahk_path():
 current_dir = os.path.dirname(os.path.abspath(__file__))
 script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 
-# 1. Evaluar si AutoHotkey está instalado; si no, descargarlo e instalarlo
+# 1. Evaluar si AutoHotkey está instalado; si no, descargarlo e instalarlo[cite: 2]
 ahk_exe = get_ahk_path()
 if not ahk_exe:
     print("[1/3] AutoHotkey no encontrado. Descargando e instalando v2.0.28...")
@@ -40,14 +40,14 @@ if not ahk_exe:
         urllib.request.urlretrieve(ahk_url, installer_path)
         subprocess.run([installer_path, "/silent"], check=True)
         print("¡AutoHotkey instalado con éxito!")
-        ahk_exe = get_ahk_path()  # Volver a buscar la ruta tras la instalación
+        ahk_exe = get_ahk_path()
     except (urllib.error.URLError, OSError, subprocess.CalledProcessError) as e:
         print(f"Error durante la instalación: {e}")
         sys.exit(1)
 else:
     print(f"[1/3] AutoHotkey detectado correctamente en: {ahk_exe}")
 
-# 2. Código AHK completo incluyendo DMC 4 y su auto-cierre
+# 2. Código AHK completo incluyendo DMC 4 y su auto-cierre[cite: 2]
 ahk_code = """#Requires AutoHotkey v2.0
 #SingleInstance Force
 
@@ -134,7 +134,7 @@ print("[2/3] Creando archivo de configuración local...")
 with open(script_path, "w", encoding="utf-8") as f:
     f.write(ahk_code)
 
-# 3. Ejecutar el archivo .ahk utilizando explícitamente el ejecutable de AHK
+# 3. Ejecutar el archivo .ahk utilizando explícitamente el ejecutable de AHK[cite: 2]
 print("[3/3] Iniciando el emulador de teclas global...")
 try:
     if ahk_exe and os.path.exists(ahk_exe):
