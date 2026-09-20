@@ -22,10 +22,10 @@ jobs:
 
     - name: Generar ejecutable con Nuitka
       run: |
-        nuitka --standalone --onefile --windows-console-mode=force --output-dir=dist src/pruebaspy/__init__.py
+        python -m nuitka --standalone --onefile --windows-console-mode=force --output-filename=map_dmc.exe src/pruebaspy/__init__.py
 
     - name: Guardar el ejecutable (Artifact)
       uses: actions/upload-artifact@v4
       with:
         name: dmc-loader-exe
-        path: dist/*.exe
+        path: map_dmc.exe
