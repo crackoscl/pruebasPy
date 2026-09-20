@@ -2,7 +2,11 @@ name: Compilar EXE con Nuitka
 
 on:
   push:
-    branches: [ "main" ] # Se ejecuta cada vez que subas cambios a la rama main
+    branches: [ "main" ]
+
+# Conceder permisos explícitos de escritura a los Releases
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -15,12 +19,12 @@ jobs:
     - name: Configurar Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.14'
+        python-version: '3.12'
 
-    - name: Instalar uv y Nuitka
+    - name: Instalar dependencias
       run: |
         python -m pip install --upgrade pip
-        pip install nuitka uv
+        pip install nuitka
 
     - name: Preparar script de entrada
       run: |
@@ -31,14 +35,13 @@ jobs:
         python -m nuitka --standalone --onefile --windows-console-mode=force --assume-yes-for-downloads --output-filename=map_dmc.exe main.py
 
     - name: Actualizar Release Automático
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2 # Actualizado a v2 para soporte con Node moderno
       with:
         files: map_dmc.exe
-        tag_name: latest          # Usa siempre una etiqueta fija llamada 'latest'
-        name: Versión de Desarrollo # Nombre visible del release
+        tag_name: latest
+        name: Versión de Desarrollo
         body: "Actualizado automáticamente con cada cambio en el código."
         draft: false
         prerelease: false
-        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
