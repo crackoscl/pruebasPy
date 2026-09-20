@@ -1,6 +1,9 @@
 name: Compilar EXE con Nuitka
 
-on: [push]
+on:
+  push:
+    tags:
+      - 'v*' # Se activa automáticamente cuando subes una etiqueta como v1.0.0
 
 jobs:
   build:
@@ -28,8 +31,9 @@ jobs:
       run: |
         python -m nuitka --standalone --onefile --windows-console-mode=force --assume-yes-for-downloads --output-filename=map_dmc.exe main.py
 
-    - name: Guardar el ejecutable (Artifact)
-      uses: actions/upload-artifact@v4
+    - name: Crear Release y Subir Ejecutable
+      uses: softprops/action-gh-release@v1
       with:
-        name: dmc-loader-exe
-        path: map_dmc.exe
+        files: map_dmc.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
