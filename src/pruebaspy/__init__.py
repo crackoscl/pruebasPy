@@ -6,7 +6,7 @@ import urllib.request
 
 """
 Script de automatización para crear un mapeo para DMC 1, 2, 3 y 4 Special Edition.
-Actualizado para funcionar perfectamente con ejecutables de Nuitka mediante doble clic.
+Diseñado para ejecutables de Nuitka mediante doble clic con manejo defensivo de errores.
 """
 
 
@@ -26,8 +26,7 @@ def get_ahk_path():
     return None
 
 
-# Solución clave para Nuitka: Detectar la ruta real del .exe si está empaquetado,
-# o usar la ruta del script si se ejecuta como código fuente normal.
+# Detección segura de la ruta para ejecutables de Nuitka (doble clic) o Python plano
 if getattr(sys, "frozen", False):
     current_dir = os.path.dirname(os.path.abspath(sys.executable))
 else:
@@ -35,24 +34,32 @@ else:
 
 script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 
-# 1. Evaluar si AutoHotkey está instalado; si no, descargarlo e instalarlo[cite: 2]
+print("[1/3] Verificando entorno y AutoHotkey v2...", flush=True)  # [cite: 2]
+
+# 1. Evaluar si AutoHotkey está instalado; si no, descargarlo e instalarlo
 ahk_exe = get_ahk_path()
 if not ahk_exe:
-    print("[1/3] AutoHotkey no encontrado. Descargando e instalando v2.0.28...")
+    print(
+        "[1/3] AutoHotkey no encontrado. Descargando e instalando v2.0.28...",
+        flush=True,
+    )  # [cite: 2]
     ahk_url = "https://www.autohotkey.com/download/ahk-v2.exe"
     installer_path = os.path.join(os.environ["TEMP"], "ahk_install.exe")
     try:
         urllib.request.urlretrieve(ahk_url, installer_path)
         subprocess.run([installer_path, "/silent"], check=True)
-        print("¡AutoHotkey instalado con éxito!")
+        print("¡AutoHotkey instalado con éxito!", flush=True)  # [cite: 2]
         ahk_exe = get_ahk_path()
     except (urllib.error.URLError, OSError, subprocess.CalledProcessError) as e:
-        print(f"Error durante la instalación: {e}")
+        print(f"Error durante la instalación: {e}", flush=True)
+        input("Presiona Enter para salir...")
         sys.exit(1)
 else:
-    print(f"[1/3] AutoHotkey detectado correctamente en: {ahk_exe}")
+    print(
+        f"[1/3] AutoHotkey detectado correctamente en: {ahk_exe}", flush=True
+    )  # [cite: 2]
 
-# 2. Código AHK completo incluyendo DMC 4 y su auto-cierre[cite: 2]
+# 2. Código AHK completo incluyendo DMC 4 y su auto-cierre
 ahk_code = """#Requires AutoHotkey v2.0
 #SingleInstance Force
 
@@ -135,23 +142,40 @@ Pause::Suspend  ;Suspend Script
 #HotIf
 """
 
-print("[2/3] Creando archivo de configuración local...")
-with open(script_path, "w", encoding="utf-8") as f:
-    f.write(ahk_code)
+print("[2/3] Creando archivo de configuración local...", flush=True)  # [cite: 2]
+try:
+    with open(script_path, "w", encoding="utf-8") as f:
+        f.write(ahk_code)
+    print(f"-> Archivo generado correctamente en: {script_path}", flush=True)
+except Exception as e:  # noqa: BLE001
+    print(
+        f"ERROR CRITICO: No se pudo escribir el archivo. Revisa permisos de la"
+        f" carpeta: {e}",
+        flush=True,
+    )
+    input("Presiona Enter para salir...")
+    sys.exit(1)
 
-# 3. Ejecutar el archivo .ahk utilizando explícitamente el ejecutable de AHK[cite: 2]
-print("[3/3] Iniciando el emulador de teclas global...")
+# 3. Ejecutar el archivo .ahk utilizando explícitamente el ejecutable de AHK v2
+print("[3/3] Iniciando el emulador de teclas global...", flush=True)  # [cite: 2]
 try:
     if ahk_exe and os.path.exists(ahk_exe):
         subprocess.Popen([ahk_exe, script_path])
     else:
-        subprocess.Popen(["cmd", "/c", script_path], shell=True)
+        raise FileNotFoundError(
+            "No se encontró el ejecutable de AutoHotkey v2 en las rutas estándar."
+        )
 
-    print("\n--------------------------------------------------")
-    print("¡LISTO!")
-    print("- Mapeo configurado y ejecutándose.")
-    print("- Se cerrará automáticamente al salir de los juegos.")
-    print("--------------------------------------------------")
-except (OSError, subprocess.SubprocessError) as e:
-    print(f"No se pudo iniciar el archivo: {e}")
+    print("\n--------------------------------------------------", flush=True)
+    print("¡LISTO!", flush=True)
+    print("- Mapeo configurado y ejecutándose.", flush=True)
+    print("- Se cerrará automáticamente al salir de los juegos.", flush=True)
+    print("--------------------------------------------------", flush=True)
+except (OSError, subprocess.SubprocessError, FileNotFoundError) as e:
+    print(f"No se pudo iniciar el archivo: {e}", flush=True)
+    input("Presiona Enter para salir...")
     sys.exit(1)
+
+# Pausa final opcional para que la consola no se cierre de golpe si hay algún aviso
+print("\nPuedes cerrar esta ventana de consola cuando desees.", flush=True)
+input("Presiona Enter para cerrar esta ventana...")
