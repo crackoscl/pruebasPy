@@ -13,9 +13,13 @@ Diseñado para ejecutables de Nuitka mediante doble clic con manejo defensivo de
 def get_ahk_path():
     local_app_data = os.environ.get("LOCALAPPDATA", "")
     paths = [
+        os.path.join(local_app_data, r"Programs\AutoHotkey\v2\AutoHotkey64.exe"),
         os.path.join(local_app_data, r"Programs\AutoHotkey\v2\AutoHotkey.exe"),
+        os.path.join(local_app_data, r"Programs\AutoHotkey\AutoHotkey64.exe"),
         os.path.join(local_app_data, r"Programs\AutoHotkey\AutoHotkey.exe"),
+        r"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe",
         r"C:\Program Files\AutoHotkey\v2\AutoHotkey.exe",
+        r"C:\Program Files (x86)\AutoHotkey\v2\AutoHotkey64.exe",
         r"C:\Program Files (x86)\AutoHotkey\v2\AutoHotkey.exe",
         r"C:\Program Files\AutoHotkey\AutoHotkey.exe",
         r"C:\Program Files (x86)\AutoHotkey\AutoHotkey.exe",
