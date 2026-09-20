@@ -5,17 +5,22 @@ import urllib.error
 import urllib.request
 
 """
-Script de automatizacion para crear un mapeo para DMC 1,2,3,4 special edition
-
+Script de automatización para crear un mapeo para DMC 1,2,3,4 special edition
 """
 
 
-def check_ahk_installed():
+def get_ahk_path():
+    # Posibles rutas donde AutoHotkey v2 suele instalarse
     paths = [
+        r"C:\Program Files\AutoHotkey\v2\AutoHotkey.exe",
+        r"C:\Program Files (x86)\AutoHotkey\v2\AutoHotkey.exe",
         r"C:\Program Files\AutoHotkey\AutoHotkey.exe",
         r"C:\Program Files (x86)\AutoHotkey\AutoHotkey.exe",
     ]
-    return any(os.path.exists(p) for p in paths)
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return None
 
 
 # Determinar si estamos corriendo como script (.py) o como ejecutable compilado (.exe)
@@ -27,14 +32,16 @@ else:
 script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 
 # 1. Evaluar si AutoHotkey está instalado
-if not check_ahk_installed():
-    print("[1/3] Descargando e instalando AutoHotkey...")
+ahk_exe = get_ahk_path()
+if not ahk_exe:
+    print("[1/3] Descargando e instalando AutoHotkey v2...")
     ahk_url = "https://www.autohotkey.com/download/ahk-v2.exe"
     installer_path = os.path.join(os.environ["TEMP"], "ahk_install.exe")
     try:
         urllib.request.urlretrieve(ahk_url, installer_path)
         subprocess.run([installer_path, "/silent"], check=True)
         print("¡AutoHotkey instalado con éxito!")
+        ahk_exe = get_ahk_path()  # Volver a buscar la ruta tras la instalación
     except (urllib.error.URLError, OSError, subprocess.CalledProcessError) as e:
         print(f"Error durante la instalación: {e}")
         sys.exit(1)
@@ -128,15 +135,20 @@ print("[2/3] Creando archivo de configuración en la misma carpeta...")
 with open(script_path, "w", encoding="utf-8") as f:
     f.write(ahk_code)
 
-# 3. Ejecutar el archivo .ahk automáticamente
+# 3. Ejecutar el archivo .ahk utilizando explícitamente el ejecutable de AHK
 print("[3/3] Iniciando el emulador de teclas global...")
 try:
-    subprocess.Popen(["start", "", script_path], shell=True)
+    if ahk_exe and os.path.exists(ahk_exe):
+        subprocess.Popen([ahk_exe, script_path])
+    else:
+        # Método alternativo compatible con Pylance mediante subprocess
+        subprocess.Popen(["cmd", "/c", script_path], shell=True)
+
     print("\n--------------------------------------------------")
     print("¡LISTO!")
-    print("- Mapeo configurado en la misma carpeta del .exe.")
+    print("- Mapeo configurado y ejecutándose.")
     print("- Se cerrará automáticamente al salir de los juegos.")
     print("--------------------------------------------------")
-except OSError as e:
+except (OSError, subprocess.SubprocessError) as e:
     print(f"No se pudo iniciar el archivo: {e}")
     sys.exit(1)
