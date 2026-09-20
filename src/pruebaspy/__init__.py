@@ -1,3 +1,4 @@
+import hashlib
 import os
 import subprocess
 import sys
@@ -6,7 +7,7 @@ import urllib.request
 
 """
 Script de automatización para crear un mapeo para DMC 1, 2, 3 y 4 Special Edition.
-Diseñado para ejecutables de Nuitka mediante doble clic con manejo defensivo de errores.
+Diseñado para ejecutables de Nuitka mediante doble clic con manejo defensivo de errores y validación de hash.
 """
 
 
@@ -38,30 +39,58 @@ else:
 
 script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 
-print("[1/3] Verificando entorno y AutoHotkey v2...", flush=True)  # [cite: 2]
+print("[1/3] Verificando entorno y AutoHotkey v2...", flush=True)
 
-# 1. Evaluar si AutoHotkey está instalado; si no, descargarlo e instalarlo
+# 1. Evaluar si AutoHotkey está instalado; si no, descargarlo, verificar hash e instalarlo
 ahk_exe = get_ahk_path()
 if not ahk_exe:
     print(
         "[1/3] AutoHotkey no encontrado. Descargando e instalando v2.0.28...",
         flush=True,
-    )  # [cite: 2]
+    )
     ahk_url = "https://www.autohotkey.com/download/ahk-v2.exe"
     installer_path = os.path.join(os.environ["TEMP"], "ahk_install.exe")
+    expected_hash = (
+        "ACA3F50A66AC4C6FCEE5BD168C90929C70F3EA9E12FC62B6699A26EA1E087DC3".lower()
+    )
+
     try:
+        # Descarga del instalador
         urllib.request.urlretrieve(ahk_url, installer_path)
+
+        # Verificación del hash SHA-256
+        sha256_hash = hashlib.sha256()
+        with open(installer_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)  # type: ignore
+
+        calculated_hash = sha256_hash.hexdigest().lower()
+
+        if calculated_hash != expected_hash:
+            print("ERROR DE SEGURIDAD: El hash del instalador no coincide.", flush=True)
+            print(f"Esperado: {expected_hash}", flush=True)
+            print(f"Obtenido: {calculated_hash}", flush=True)
+            input("Presiona Enter para salir...")
+            sys.exit(1)
+
+        print("¡Hash verificado correctamente! Instalando AutoHotkey...", flush=True)
         subprocess.run([installer_path, "/silent"], check=True)
-        print("¡AutoHotkey instalado con éxito!", flush=True)  # [cite: 2]
+        print("¡AutoHotkey instalado con éxito!", flush=True)
         ahk_exe = get_ahk_path()
+
     except (urllib.error.URLError, OSError, subprocess.CalledProcessError) as e:
         print(f"Error durante la instalación: {e}", flush=True)
         input("Presiona Enter para salir...")
         sys.exit(1)
+    finally:
+        # Limpieza del instalador temporal
+        if os.path.exists(installer_path):
+            try:
+                os.remove(installer_path)
+            except OSError:
+                pass
 else:
-    print(
-        f"[1/3] AutoHotkey detectado correctamente en: {ahk_exe}", flush=True
-    )  # [cite: 2]
+    print(f"[1/3] AutoHotkey detectado correctamente en: {ahk_exe}", flush=True)
 
 # 2. Código AHK completo incluyendo DMC 4 y su auto-cierre
 ahk_code = """#Requires AutoHotkey v2.0
@@ -146,7 +175,7 @@ Pause::Suspend  ;Suspend Script
 #HotIf
 """
 
-print("[2/3] Creando archivo de configuración local...", flush=True)  # [cite: 2]
+print("[2/3] Creando archivo de configuración local...", flush=True)
 try:
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(ahk_code)
@@ -161,7 +190,7 @@ except Exception as e:  # noqa: BLE001
     sys.exit(1)
 
 # 3. Ejecutar el archivo .ahk utilizando explícitamente el ejecutable de AHK v2
-print("[3/3] Iniciando el emulador de teclas global...", flush=True)  # [cite: 2]
+print("[3/3] Iniciando el emulador de teclas global...", flush=True)
 try:
     if ahk_exe and os.path.exists(ahk_exe):
         subprocess.Popen([ahk_exe, script_path])
