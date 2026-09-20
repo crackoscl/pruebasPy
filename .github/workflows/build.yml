@@ -2,8 +2,7 @@ name: Compilar EXE con Nuitka
 
 on:
   push:
-    tags:
-      - 'v*' 
+    branches: [ "main" ] # Se ejecuta cada vez que subas cambios a la rama main
 
 jobs:
   build:
@@ -31,9 +30,15 @@ jobs:
       run: |
         python -m nuitka --standalone --onefile --windows-console-mode=force --assume-yes-for-downloads --output-filename=map_dmc.exe main.py
 
-    - name: Crear Release y Subir Ejecutable
+    - name: Actualizar Release Automático
       uses: softprops/action-gh-release@v1
       with:
         files: map_dmc.exe
+        tag_name: latest          # Usa siempre una etiqueta fija llamada 'latest'
+        name: Versión de Desarrollo # Nombre visible del release
+        body: "Actualizado automáticamente con cada cambio en el código."
+        draft: false
+        prerelease: false
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
