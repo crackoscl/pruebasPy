@@ -20,13 +20,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install nuitka uv
 
-    - name: Instalar dependencias del proyecto con uv
+    - name: Preparar script de entrada
       run: |
-        uv pip install --system .
+        copy src\pruebaspy\__init__.py main.py
 
     - name: Generar ejecutable con Nuitka
       run: |
-        python -m nuitka --standalone --onefile --windows-console-mode=force --output-filename=map_dmc.exe --main=src/pruebaspy/__init__.py pruebaspy
+        python -m nuitka --standalone --onefile --windows-console-mode=force --output-filename=map_dmc.exe main.py
 
     - name: Guardar el ejecutable (Artifact)
       uses: actions/upload-artifact@v4
