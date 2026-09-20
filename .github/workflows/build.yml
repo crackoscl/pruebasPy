@@ -3,7 +3,7 @@ name: Compilar EXE con Nuitka
 on:
   push:
     tags:
-      - 'v*' # Se activa automáticamente cuando subes una etiqueta como v1.0.0
+      - 'v*' 
 
 jobs:
   build:
