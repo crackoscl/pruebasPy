@@ -1,4 +1,4 @@
-name: Compilar EXE para Windows con uv
+name: Compilar EXE con Nuitka
 
 on: [push]
 
@@ -10,25 +10,22 @@ jobs:
     - name: Descargar repositorio
       uses: actions/checkout@v4
 
-    - name: Instalar uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
-
     - name: Configurar Python
-      run: uv python install 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-    - name: Instalar PyInstaller usando uv
+    - name: Instalar Nuitka y dependencias
       run: |
-        uv pip install --system pyinstaller
+        python -m pip install --upgrade pip
+        pip install nuitka
 
-    - name: Generar ejecutable
-      # Apuntamos directamente al __init__.py que creó uv
+    - name: Generar ejecutable con Nuitka
       run: |
-        pyinstaller --onefile --name map_dmc src/pruebaspy/__init__.py
+        nuitka --standalone --onefile --windows-console-mode=force --output-filename=map_dmc.exe src/pruebaspy/__init__.py
 
     - name: Guardar el ejecutable (Artifact)
       uses: actions/upload-artifact@v4
       with:
         name: dmc-loader-exe
-        path: dist/*.exe
+        path: map_dmc.exe
