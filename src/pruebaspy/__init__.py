@@ -23,12 +23,8 @@ def get_ahk_path():
     return None
 
 
-# Determinar si estamos corriendo como script (.py) o como ejecutable compilado (.exe)
-if getattr(sys, "frozen", False):
-    current_dir = os.path.dirname(sys.executable)
-else:
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-
+# Usar la carpeta TEMP del sistema para evitar problemas de permisos con OneDrive o rutas relativas
+current_dir = os.environ["TEMP"]
 script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 
 # 1. Evaluar si AutoHotkey está instalado
@@ -131,7 +127,7 @@ Pause::Suspend  ;Suspend Script
 #HotIf
 """
 
-print("[2/3] Creando archivo de configuración en la misma carpeta...")
+print("[2/3] Creando archivo de configuración en la carpeta temporal...")
 with open(script_path, "w", encoding="utf-8") as f:
     f.write(ahk_code)
 
@@ -141,7 +137,6 @@ try:
     if ahk_exe and os.path.exists(ahk_exe):
         subprocess.Popen([ahk_exe, script_path])
     else:
-        # Método alternativo compatible con Pylance mediante subprocess
         subprocess.Popen(["cmd", "/c", script_path], shell=True)
 
     print("\n--------------------------------------------------")
