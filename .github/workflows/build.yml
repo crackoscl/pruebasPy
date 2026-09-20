@@ -25,6 +25,8 @@ jobs:
         copy src\pruebaspy\__init__.py main.py
 
     - name: Generar ejecutable con Nuitka
+      env:
+        NUITKA_ASSUME_YES_FOR_DOWNLOADS: "1"
       run: |
         python -m nuitka --standalone --onefile --windows-console-mode=force --output-filename=map_dmc.exe main.py
 
