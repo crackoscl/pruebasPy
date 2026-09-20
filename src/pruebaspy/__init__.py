@@ -6,7 +6,7 @@ import urllib.request
 
 """
 Script de automatización para crear un mapeo para DMC 1, 2, 3 y 4 Special Edition.
-Actualizado con rutas compatibles para Windows 11.
+Actualizado para funcionar perfectamente con ejecutables de Nuitka mediante doble clic.
 """
 
 
@@ -26,8 +26,13 @@ def get_ahk_path():
     return None
 
 
-# Usar la carpeta actual del script para guardar el archivo de configuración localmente
-current_dir = os.path.dirname(os.path.abspath(__file__))
+# Solución clave para Nuitka: Detectar la ruta real del .exe si está empaquetado,
+# o usar la ruta del script si se ejecuta como código fuente normal.
+if getattr(sys, "frozen", False):
+    current_dir = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
 script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 
 # 1. Evaluar si AutoHotkey está instalado; si no, descargarlo e instalarlo[cite: 2]
