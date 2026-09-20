@@ -13,7 +13,7 @@ jobs:
     - name: Configurar Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.14'
+        python-version: '3.10'
 
     - name: Instalar uv y Nuitka
       run: |
@@ -26,7 +26,7 @@ jobs:
 
     - name: Generar ejecutable con Nuitka
       run: |
-        python -m nuitka --standalone --onefile --windows-console-mode=force --output-filename=map_dmc.exe --include-package=pruebaspy src/pruebaspy/__init__.py
+        python -m nuitka --standalone --onefile --windows-console-mode=force --output-filename=map_dmc.exe --main=src/pruebaspy/__init__.py pruebaspy
 
     - name: Guardar el ejecutable (Artifact)
       uses: actions/upload-artifact@v4
