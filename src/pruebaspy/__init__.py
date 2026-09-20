@@ -31,7 +31,6 @@ def get_ahk_path():
     return None
 
 
-# Detección segura de la ruta para ejecutables de Nuitka (doble clic) o Python plano
 if getattr(sys, "frozen", False):
     current_dir = os.path.dirname(os.path.abspath(sys.executable))
 else:
@@ -41,7 +40,6 @@ script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 
 print("[1/3] Verificando entorno y AutoHotkey v2...", flush=True)
 
-# 1. Evaluar si AutoHotkey está instalado; si no, descargarlo, verificar hash e instalarlo
 ahk_exe = get_ahk_path()
 if not ahk_exe:
     print(
@@ -55,10 +53,8 @@ if not ahk_exe:
     )
 
     try:
-        # Descarga del instalador
         urllib.request.urlretrieve(ahk_url, installer_path)
 
-        # Verificación del hash SHA-256
         sha256_hash = hashlib.sha256()
         with open(installer_path, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
@@ -83,7 +79,6 @@ if not ahk_exe:
         input("Presiona Enter para salir...")
         sys.exit(1)
     finally:
-        # Limpieza del instalador temporal
         if os.path.exists(installer_path):
             try:
                 os.remove(installer_path)
@@ -92,7 +87,7 @@ if not ahk_exe:
 else:
     print(f"[1/3] AutoHotkey detectado correctamente en: {ahk_exe}", flush=True)
 
-# 2. Código AHK completo incluyendo DMC 4 y su auto-cierre
+
 ahk_code = """#Requires AutoHotkey v2.0
 #SingleInstance Force
 
@@ -189,7 +184,6 @@ except Exception as e:  # noqa: BLE001
     input("Presiona Enter para salir...")
     sys.exit(1)
 
-# 3. Ejecutar el archivo .ahk utilizando explícitamente el ejecutable de AHK v2
 print("[3/3] Iniciando el emulador de teclas global...", flush=True)
 try:
     if ahk_exe and os.path.exists(ahk_exe):
@@ -209,6 +203,5 @@ except (OSError, subprocess.SubprocessError, FileNotFoundError) as e:
     input("Presiona Enter para salir...")
     sys.exit(1)
 
-# Pausa final opcional para que la consola no se cierre de golpe si hay algún aviso
 print("\nPuedes cerrar esta ventana de consola cuando desees.", flush=True)
 input("Presiona Enter para cerrar esta ventana...")
