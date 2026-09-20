@@ -1,11 +1,10 @@
 import os
 import subprocess
 import sys
-import urllib.error
-import urllib.request
 
 """
-Script de automatización para crear un mapeo para DMC 1,2,3,4 special edition
+Script de automatización para crear un mapeo para DMC 1, 2, 3 y 4 Special Edition.
+Modificado para ejecutarse de forma local y evitar falsos positivos del antivirus.
 """
 
 
@@ -23,26 +22,20 @@ def get_ahk_path():
     return None
 
 
-# Usar la carpeta TEMP del sistema para evitar problemas de permisos con OneDrive o rutas relativas
-current_dir = os.environ["TEMP"]
+# Usar la carpeta actual del script en lugar de la carpeta TEMP
+current_dir = os.path.dirname(os.path.abspath(__file__))
 script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 
-# 1. Evaluar si AutoHotkey está instalado
+# 1. Verificar si AutoHotkey está instalado
 ahk_exe = get_ahk_path()
 if not ahk_exe:
-    print("[1/3] Descargando e instalando AutoHotkey v2...")
-    ahk_url = "https://www.autohotkey.com/download/ahk-v2.exe"
-    installer_path = os.path.join(os.environ["TEMP"], "ahk_install.exe")
-    try:
-        urllib.request.urlretrieve(ahk_url, installer_path)
-        subprocess.run([installer_path, "/silent"], check=True)
-        print("¡AutoHotkey instalado con éxito!")
-        ahk_exe = get_ahk_path()  # Volver a buscar la ruta tras la instalación
-    except (urllib.error.URLError, OSError, subprocess.CalledProcessError) as e:
-        print(f"Error durante la instalación: {e}")
-        sys.exit(1)
+    print("[Error] No se encontró AutoHotkey v2 instalado en el sistema.")
+    print(
+        "Por favor, instálalo desde https://www.autohotkey.com/ e intenta nuevamente."
+    )
+    sys.exit(1)
 else:
-    print("[1/3] AutoHotkey ya está instalado.")
+    print("[1/2] AutoHotkey detectado correctamente.")
 
 # 2. Código AHK completo incluyendo DMC 4 y su auto-cierre
 ahk_code = """#Requires AutoHotkey v2.0
@@ -127,18 +120,13 @@ Pause::Suspend  ;Suspend Script
 #HotIf
 """
 
-print("[2/3] Creando archivo de configuración en la carpeta temporal...")
+print("[2/2] Creando y ejecutando el mapeo local...")
 with open(script_path, "w", encoding="utf-8") as f:
     f.write(ahk_code)
 
 # 3. Ejecutar el archivo .ahk utilizando explícitamente el ejecutable de AHK
-print("[3/3] Iniciando el emulador de teclas global...")
 try:
-    if ahk_exe and os.path.exists(ahk_exe):
-        subprocess.Popen([ahk_exe, script_path])
-    else:
-        subprocess.Popen(["cmd", "/c", script_path], shell=True)
-
+    subprocess.Popen([ahk_exe, script_path])
     print("\n--------------------------------------------------")
     print("¡LISTO!")
     print("- Mapeo configurado y ejecutándose.")
