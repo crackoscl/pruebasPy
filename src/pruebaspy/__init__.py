@@ -6,20 +6,22 @@ import urllib.request
 
 """
 Script de automatización para crear un mapeo para DMC 1, 2, 3 y 4 Special Edition.
-Verifica e instala AutoHotkey v2 automáticamente si no está presente.
+Actualizado con rutas compatibles para Windows 11.
 """
 
 
 def get_ahk_path():
-    # Posibles rutas donde AutoHotkey v2 suele instalarse
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
     paths = [
+        os.path.join(local_app_data, r"Programs\AutoHotkey\v2\AutoHotkey.exe"),
+        os.path.join(local_app_data, r"Programs\AutoHotkey\AutoHotkey.exe"),
         r"C:\Program Files\AutoHotkey\v2\AutoHotkey.exe",
         r"C:\Program Files (x86)\AutoHotkey\v2\AutoHotkey.exe",
         r"C:\Program Files\AutoHotkey\AutoHotkey.exe",
         r"C:\Program Files (x86)\AutoHotkey\AutoHotkey.exe",
     ]
     for p in paths:
-        if os.path.exists(p):
+        if p and os.path.exists(p):
             return p
     return None
 
@@ -31,7 +33,7 @@ script_path = os.path.join(current_dir, "dmc_mapping.ahk")
 # 1. Evaluar si AutoHotkey está instalado; si no, descargarlo e instalarlo
 ahk_exe = get_ahk_path()
 if not ahk_exe:
-    print("[1/3] AutoHotkey no encontrado. Descargando e instalando v2...")
+    print("[1/3] AutoHotkey no encontrado. Descargando e instalando v2.0.28...")
     ahk_url = "https://www.autohotkey.com/download/ahk-v2.exe"
     installer_path = os.path.join(os.environ["TEMP"], "ahk_install.exe")
     try:
@@ -43,7 +45,7 @@ if not ahk_exe:
         print(f"Error durante la instalación: {e}")
         sys.exit(1)
 else:
-    print("[1/3] AutoHotkey ya está instalado.")
+    print(f"[1/3] AutoHotkey detectado correctamente en: {ahk_exe}")
 
 # 2. Código AHK completo incluyendo DMC 4 y su auto-cierre
 ahk_code = """#Requires AutoHotkey v2.0
