@@ -30,14 +30,11 @@ def get_github_release_hash(target_filename: str):
 
             if target_filename:
                 pattern = rf"(?:{re.escape(target_filename)}).*?([a-fA-F0-9]{{64}})"
-                match = re.search(pattern, body, re.IGNORECASE)
+                match = re.search(pattern, body, re.IGNORECASE | re.DOTALL)
                 if match:
                     return match.group(1)
 
-            # all_hashes = re.findall(r"\b[a-fA-F0-9]{64}\b", body)
-            # return all_hashes if all_hashes else None
-
-    except Exception as e:  # noqa: BLE001
+    except (urllib.error.URLError, json.JSONDecodeError) as e:
         print(f"Error al conectar con la API de GitHub: {e}")
         return None
 
@@ -78,10 +75,17 @@ if not ahk_exe:
         flush=True,
     )
     ahk_url = "https://www.autohotkey.com/download/ahk-v2.exe"
-    installer_path = os.path.join(os.environ["TEMP"], "ahk_install.exe")
+    with urllib.request.urlopen(ahk_url) as response:
+        final_url = response.geturl()
+        content_disposition = response.headers.get("Content-Disposition")
 
-    file_name = os.path.basename(installer_path)
-    expected_hash = get_github_release_hash(file_name)
+        if content_disposition and "filename=" in content_disposition:
+            file_name = content_disposition.split("filename=")[-1].strip("\"'")
+        else:
+            file_name = os.path.basename(final_url)
+
+    installer_path = os.path.join(os.environ["TEMP"], file_name)
+    expected_hash = get_github_release_hash(os.path.basename(installer_path))
 
     try:
         urllib.request.urlretrieve(ahk_url, installer_path)
