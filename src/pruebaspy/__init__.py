@@ -1,5 +1,7 @@
 import hashlib
+import json
 import os
+import re
 import subprocess
 import sys
 import urllib.error
@@ -9,6 +11,35 @@ import urllib.request
 Script de automatización para crear un mapeo para DMC 1, 2, 3 y 4 Special Edition.
 Diseñado para ejecutables de Nuitka mediante doble clic con manejo defensivo de errores y validación de hash.
 """
+
+
+def get_github_release_hash(target_filename: str):
+    url = "https://api.github.com/repos/AutoHotkey/AutoHotkey/releases/latest"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Python-Hash-Fetcher",
+            "Accept": "application/vnd.github.v3+json",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            body = data.get("body", "")
+
+            if target_filename:
+                pattern = rf"(?:{re.escape(target_filename)}).*?([a-fA-F0-9]{{64}})"
+                match = re.search(pattern, body, re.IGNORECASE)
+                if match:
+                    return match.group(1)
+
+            # all_hashes = re.findall(r"\b[a-fA-F0-9]{64}\b", body)
+            # return all_hashes if all_hashes else None
+
+    except Exception as e:  # noqa: BLE001
+        print(f"Error al conectar con la API de GitHub: {e}")
+        return None
 
 
 def get_ahk_path():
@@ -48,9 +79,9 @@ if not ahk_exe:
     )
     ahk_url = "https://www.autohotkey.com/download/ahk-v2.exe"
     installer_path = os.path.join(os.environ["TEMP"], "ahk_install.exe")
-    expected_hash = (
-        "ACA3F50A66AC4C6FCEE5BD168C90929C70F3EA9E12FC62B6699A26EA1E087DC3".lower()
-    )
+
+    file_name = os.path.basename(installer_path)
+    expected_hash = get_github_release_hash(file_name)
 
     try:
         urllib.request.urlretrieve(ahk_url, installer_path)
@@ -175,7 +206,7 @@ try:
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(ahk_code)
     print(f"-> Archivo generado correctamente en: {script_path}", flush=True)
-except Exception as e:  # noqa: BLE001
+except OSError as e:
     print(
         f"ERROR CRITICO: No se pudo escribir el archivo. Revisa permisos de la"
         f" carpeta: {e}",

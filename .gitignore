@@ -1,2 +1,52 @@
-/.venv
-/.vscode
+# --- Python General ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Entornos Virtuales y uv ---
+.venv/
+venv/
+ENV/
+env/
+.uv_cache/
+
+# --- Archivos Comprimidos y Temporales ---
+*.zip
+# O puedes ignorar únicamente este archivo específico:
+# rosa.zip
+
+# --- Entornos de Desarrollo e IDEs ---
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+
+# --- Variables de Entorno y Configuración Local ---
+.env
+.env.*
+!.env.example
