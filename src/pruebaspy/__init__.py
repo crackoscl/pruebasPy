@@ -4,12 +4,14 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
+import zipfile
 
 """
-Script de automatización para crear un mapeo para DMC 1, 2, 3 y 4 Special Edition.
-Diseñado para ejecutables de Nuitka mediante doble clic con manejo defensivo de errores y validación de hash.
+Script de automatización temporal para DMC 1, 2, 3 y 4 Special Edition.
+Descarga y ejecuta AutoHotkey v2 de forma efímera en la carpeta TEMP y se limpia al salir.
 """
 
 
@@ -39,57 +41,20 @@ def get_github_release_hash(target_filename: str):
         return None
 
 
-def get_ahk_path():
-    local_app_data = os.environ.get("LOCALAPPDATA", "")
-    paths = [
-        os.path.join(local_app_data, r"Programs\AutoHotkey\v2\AutoHotkey64.exe"),
-        os.path.join(local_app_data, r"Programs\AutoHotkey\v2\AutoHotkey.exe"),
-        os.path.join(local_app_data, r"Programs\AutoHotkey\AutoHotkey64.exe"),
-        os.path.join(local_app_data, r"Programs\AutoHotkey\AutoHotkey.exe"),
-        r"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe",
-        r"C:\Program Files\AutoHotkey\v2\AutoHotkey.exe",
-        r"C:\Program Files (x86)\AutoHotkey\v2\AutoHotkey64.exe",
-        r"C:\Program Files (x86)\AutoHotkey\v2\AutoHotkey.exe",
-        r"C:\Program Files\AutoHotkey\AutoHotkey.exe",
-        r"C:\Program Files (x86)\AutoHotkey\AutoHotkey.exe",
-    ]
-    for p in paths:
-        if p and os.path.exists(p):
-            return p
-    return None
+temp_dir = tempfile.mkdtemp(prefix="dmc_ahk_")
+ahk_exe = os.path.join(temp_dir, "AutoHotkey64.exe")
+script_path = os.path.join(temp_dir, "dmc_mapping.ahk")
 
+print("[1/3] Preparando entorno temporal y descargando AutoHotkey v2...", flush=True)
 
-if getattr(sys, "frozen", False):
-    current_dir = os.path.dirname(os.path.abspath(sys.executable))
-else:
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+ahk_url = "https://www.autohotkey.com/download/ahk-v2.zip"
+installer_path = os.path.join(temp_dir, "ahk-v2.zip")
 
-script_path = os.path.join(current_dir, "dmc_mapping.ahk")
-
-print("[1/3] Verificando entorno y AutoHotkey v2...", flush=True)
-
-ahk_exe = get_ahk_path()
-if not ahk_exe:
-    print(
-        "[1/3] AutoHotkey no encontrado. Descargando e instalando v2.0.28...",
-        flush=True,
-    )
-    ahk_url = "https://www.autohotkey.com/download/ahk-v2.exe"
-    with urllib.request.urlopen(ahk_url) as response:
-        final_url = response.geturl()
-        content_disposition = response.headers.get("Content-Disposition")
-
-        if content_disposition and "filename=" in content_disposition:
-            file_name = content_disposition.split("filename=")[-1].strip("\"'")
-        else:
-            file_name = os.path.basename(final_url)
-
-    installer_path = os.path.join(os.environ["TEMP"], file_name)
+try:
+    urllib.request.urlretrieve(ahk_url, installer_path)
     expected_hash = get_github_release_hash(os.path.basename(installer_path))
 
-    try:
-        urllib.request.urlretrieve(ahk_url, installer_path)
-
+    if expected_hash:
         sha256_hash = hashlib.sha256()
         with open(installer_path, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
@@ -98,30 +63,27 @@ if not ahk_exe:
         calculated_hash = sha256_hash.hexdigest().lower()
 
         if calculated_hash != expected_hash:
-            print("ERROR DE SEGURIDAD: El hash del instalador no coincide.", flush=True)
+            print("ERROR DE SEGURIDAD: El hash del archivo no coincide.", flush=True)
             print(f"Esperado: {expected_hash}", flush=True)
             print(f"Obtenido: {calculated_hash}", flush=True)
             input("Presiona Enter para salir...")
             sys.exit(1)
+        print("¡Hash verificado correctamente!", flush=True)
 
-        print("¡Hash verificado correctamente! Instalando AutoHotkey...", flush=True)
-        subprocess.run([installer_path, "/silent"], check=True)
-        print("¡AutoHotkey instalado con éxito!", flush=True)
-        ahk_exe = get_ahk_path()
+    print("Extrayendo AutoHotkey de forma temporal...", flush=True)
+    with zipfile.ZipFile(installer_path, "r") as zip_ref:
+        zip_ref.extract("AutoHotkey64.exe", temp_dir)
 
-    except (urllib.error.URLError, OSError, subprocess.CalledProcessError) as e:
-        print(f"Error durante la instalación: {e}", flush=True)
-        input("Presiona Enter para salir...")
-        sys.exit(1)
-    finally:
-        if os.path.exists(installer_path):
-            try:
-                os.remove(installer_path)
-            except OSError:
-                pass
-else:
-    print(f"[1/3] AutoHotkey detectado correctamente en: {ahk_exe}", flush=True)
-
+except (urllib.error.URLError, OSError, subprocess.CalledProcessError) as e:
+    print(f"Error durante la preparación temporal: {e}", flush=True)
+    input("Presiona Enter para salir...")
+    sys.exit(1)
+finally:
+    if os.path.exists(installer_path):
+        try:
+            os.remove(installer_path)
+        except OSError:
+            pass
 
 ahk_code = """#Requires AutoHotkey v2.0
 #SingleInstance Force
@@ -205,38 +167,46 @@ Pause::Suspend  ;Suspend Script
 #HotIf
 """
 
-print("[2/3] Creando archivo de configuración local...", flush=True)
+print("[2/3] Creando script de mapeo temporal...", flush=True)
 try:
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(ahk_code)
-    print(f"-> Archivo generado correctamente en: {script_path}", flush=True)
 except OSError as e:
-    print(
-        f"ERROR CRITICO: No se pudo escribir el archivo. Revisa permisos de la"
-        f" carpeta: {e}",
-        flush=True,
-    )
+    print(f"ERROR CRITICO: No se pudo escribir el archivo temporal: {e}", flush=True)
     input("Presiona Enter para salir...")
     sys.exit(1)
 
-print("[3/3] Iniciando el emulador de teclas global...", flush=True)
+print("[3/3] Iniciando el mapeador y esperando a que cierres los juegos...", flush=True)
 try:
-    if ahk_exe and os.path.exists(ahk_exe):
-        subprocess.Popen([ahk_exe, script_path])
+    if os.path.exists(ahk_exe):
+        process = subprocess.Popen([ahk_exe, script_path])
+        process.wait()
     else:
-        raise FileNotFoundError(
-            "No se encontró el ejecutable de AutoHotkey v2 en las rutas estándar."
-        )
+        raise FileNotFoundError("No se pudo extraer el ejecutable de AutoHotkey.")
 
     print("\n--------------------------------------------------", flush=True)
-    print("¡LISTO!", flush=True)
-    print("- Mapeo configurado y ejecutándose.", flush=True)
-    print("- Se cerrará automáticamente al salir de los juegos.", flush=True)
+    print("¡Juegos cerrados! El mapeador ha finalizado.", flush=True)
     print("--------------------------------------------------", flush=True)
-except (OSError, subprocess.SubprocessError, FileNotFoundError) as e:
-    print(f"No se pudo iniciar el archivo: {e}", flush=True)
-    input("Presiona Enter para salir...")
-    sys.exit(1)
 
-print("\nPuedes cerrar esta ventana de consola cuando desees.", flush=True)
-input("Presiona Enter para cerrar esta ventana...")
+except (OSError, subprocess.SubprocessError, FileNotFoundError) as e:
+    print(f"Ocurrió un error durante la ejecución: {e}", flush=True)
+
+finally:
+    print("Limpiando archivos temporales...", flush=True)
+    for root, dirs, files in os.walk(temp_dir, topdown=False):
+        for name in files:
+            try:
+                os.remove(os.path.join(root, name))
+            except OSError:
+                pass
+        for name in dirs:
+            try:
+                os.rmdir(os.path.join(root, name))
+            except OSError:
+                pass
+    try:
+        os.rmdir(temp_dir)
+    except OSError:
+        pass
+
+print("¡Listo! Todo limpio y cerrado.", flush=True)
