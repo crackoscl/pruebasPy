@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "main" ]
 
-# Conceder permisos explícitos de escritura a los Releases
 permissions:
   contents: write
 
@@ -34,13 +33,36 @@ jobs:
       run: |
         python -m nuitka --standalone --onefile --windows-console-mode=force --assume-yes-for-downloads --output-filename=map_dmc.exe main.py
 
+    - name: Crear certificado autofirmado y firmar ejecutable
+      shell: pwsh
+      run: |
+        # 1. Crear un certificado autofirmado temporal
+        $cert = New-SelfSignedCertificate -DnsName "map_dmc.local" -CertStoreLocation "Cert:\CurrentUser\My" -Type CodeSigningCert
+        
+        # 2. Exportarlo a un archivo PFX temporal
+        $password = ConvertTo-SecureString -String "Password123" -Force -AsPlainText
+        Export-PfxCertificate -Cert $cert -FilePath "$env:TEMP\temp_cert.pfx" -Password $password
+        
+        # 3. Encontrar signtool.exe en el runner de Windows
+        $signtool = Get-ChildItem -Path "C:\Program Files*\Windows Kits\10\bin" -Recurse -Filter "signtool.exe" | Select-Object -ExpandProperty FullName | Select-Object -Last 1
+        
+        # 4. Firmar el ejecutable generado por Nuitka
+        & $signtool sign /f "$env:TEMP\temp_cert.pfx" /p "Password123" /fd SHA256 map_dmc.exe
+        
+        Write-Host "¡Ejecutable firmado correctamente!"
+
+    - name: Limpiar certificado temporal
+      if: always()
+      shell: pwsh
+      run: Remove-Item -Path "$env:TEMP\temp_cert.pfx" -ErrorAction SilentlyContinue
+
     - name: Actualizar Release Automático
-      uses: softprops/action-gh-release@v2 # Actualizado a v2 para soporte con Node moderno
+      uses: softprops/action-gh-release@v2
       with:
         files: map_dmc.exe
         tag_name: latest
         name: Versión de Desarrollo
-        body: "Actualizado automáticamente con cada cambio en el código."
+        body: "Actualizado automáticamente con cada cambio en el código y firmado digitalmente."
         draft: false
         prerelease: false
       env:
