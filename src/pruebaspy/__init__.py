@@ -23,7 +23,9 @@ def url_open_safe(req: urllib.request.Request):
     try:
         return urllib.request.urlopen(req, context=context)
     except urllib.error.URLError, ssl.SSLError:
-        unverified_context = ssl._create_unverified_context()  # type: ignore
+        unverified_context = ssl.create_default_context()
+        unverified_context.check_hostname = False
+        unverified_context.verify_mode = ssl.CERT_NONE
         return urllib.request.urlopen(req, context=unverified_context)
 
 
@@ -48,7 +50,6 @@ def get_latest_github_release_info():
         target_filename = None
         download_url = None
 
-        # 1. Buscamos el asset oficial que termine en .zip
         for asset in assets:
             name = asset.get("name", "")
             if name.endswith(".zip"):
@@ -61,7 +62,6 @@ def get_latest_github_release_info():
 
         expected_hash = None
 
-        # 2. Búsqueda dirigida: Analizamos línea por línea para encontrar el hash exacto del .zip
         lines = body.splitlines()
         for i, line in enumerate(lines):
             if target_filename in line:
@@ -114,19 +114,17 @@ try:
         },
     )
 
-    # Uso de la función auxiliar centralizada para la descarga
     with url_open_safe(req_ahk) as response, open(installer_path, "wb") as out_file:
         shutil.copyfileobj(response, out_file)
 
     print("Archivo descargado correctamente desde GitHub.", flush=True)
 
-    # Validación de Hash
     if expected_hash:
         print(f"Hash oficial del ZIP encontrado: {expected_hash}")
         sha256_hash = hashlib.sha256()
         with open(installer_path, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)  # type: ignore
+            while chunk := f.read(4096):
+                sha256_hash.update(chunk)
 
         calculated_hash = sha256_hash.hexdigest().lower()
 
